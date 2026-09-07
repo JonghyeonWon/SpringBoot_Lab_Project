@@ -1,8 +1,12 @@
 package com.rookies6.myspringbootlab.controller;
 
+import com.rookies6.myspringbootlab.controller.dto.BookDTO;
 import com.rookies6.myspringbootlab.entity.Book;
 import com.rookies6.myspringbootlab.exception.BusinessException;
 import com.rookies6.myspringbootlab.repository.BookRepository;
+import com.rookies6.myspringbootlab.service.BookService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.apache.catalina.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigureOrder;
@@ -15,57 +19,50 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/books")
+@RequiredArgsConstructor
 public class BookRestController {
 
-    @Autowired
-    private BookRepository bookRepository;
+    private final BookService bookService;
 
     @GetMapping
-    public List<Book> getAllBooks() {
-        return bookRepository.findAll();
+    public ResponseEntity<List<BookDTO.BookResponse>> getAllBooks() {
+        List<BookDTO.BookResponse> books = bookService.getAllBooks();
+        return ResponseEntity.ok(books);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Book> getBookById(@PathVariable Long id) {
-        Optional<Book> targetBook = bookRepository.findById(id);
-        Book findBook = targetBook.orElseThrow(() -> new BusinessException("Book Not Found", HttpStatus.NOT_FOUND));
-        return ResponseEntity.ok(findBook);
+    public ResponseEntity<BookDTO.BookResponse> getBookById(@PathVariable Long id) {
+        BookDTO.BookResponse targetBook = bookService.getBookById(id);
+        return ResponseEntity.ok(targetBook);
     }
 
     @GetMapping("/isbn/{isbn}")
-    public ResponseEntity<Book> getBookByIsbn(@PathVariable String isbn) {
-        Optional<Book> targetBook = bookRepository.findByIsbn(isbn);
-        Book findBook = targetBook.orElseThrow(() -> new BusinessException("Book Not Found", HttpStatus.NOT_FOUND));
-        return ResponseEntity.ok(findBook);
+    public ResponseEntity<BookDTO.BookResponse> getBookByIsbn(@PathVariable String isbn) {
+        BookDTO.BookResponse targetBook = bookService.getBookByIsbn(isbn);
+        return ResponseEntity.ok(targetBook);
     }
 
     @GetMapping("/author/{author}")
-    public List<Book> getBookByAuthor(@PathVariable String author) {
-        return bookRepository.findByAuthor(author);
+    public ResponseEntity<List<BookDTO.BookResponse>> getBookByAuthor(@PathVariable String author) {
+        List<BookDTO.BookResponse> targetBooks = bookService.getBookByAuthor(author);
+        return ResponseEntity.ok(targetBooks);
     }
 
     @PostMapping
-    public ResponseEntity<Book> createBook(@RequestBody Book book) {
-        return ResponseEntity.ok(bookRepository.save(book));
+    public ResponseEntity<BookDTO.BookResponse> createBook(@Valid @RequestBody BookDTO.BookCreateRequest request) {
+        BookDTO.BookResponse createdBook = bookService.createBook(request);
+        return new ResponseEntity<>(createdBook, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Book> updateBook(@PathVariable Long id, @RequestBody Book book) {
-        Optional<Book> targetBook = bookRepository.findById(id);
-        Book findBook = targetBook.orElseThrow(() -> new BusinessException("Book Not Found", HttpStatus.NOT_FOUND));
-        findBook.setTitle(book.getTitle());
-        findBook.setAuthor(book.getAuthor());
-        findBook.setIsbn(book.getIsbn());
-        findBook.setPrice(book.getPrice());
-        findBook.setPublishDate(book.getPublishDate());
-        return ResponseEntity.ok(bookRepository.save(findBook));
+    public ResponseEntity<BookDTO.BookResponse> updateBook(@PathVariable Long id, @Valid @RequestBody BookDTO.BookUpdateRequest request) {
+        BookDTO.BookResponse updatedBook = bookService.updateBook(id, request);
+        return ResponseEntity.ok(updatedBook);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBook(@PathVariable Long id) {
-        Optional<Book> targetBook = bookRepository.findById(id);
-        Book findBook = targetBook.orElseThrow(() -> new BusinessException("Book Not Found", HttpStatus.NOT_FOUND));
-        bookRepository.delete(findBook);
-        return ResponseEntity.ok().build();
+        bookService.deleteBook(id);
+        return ResponseEntity.noContent().build();
     }
 }
