@@ -21,4 +21,7 @@ public class Book {
     private String isbn;
     private Integer price;
     private LocalDate publishDate;
+
+    @OneToOne(fetch = FetchType.LAZY, mappedBy = "book", cascade = CascadeType.ALL)
+    private BookDetail bookDetail;
 }
