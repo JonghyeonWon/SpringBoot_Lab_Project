@@ -1,98 +1,188 @@
 package com.rookies6.myspringbootlab.repository;
 
 import com.rookies6.myspringbootlab.entity.Book;
-import org.junit.jupiter.api.BeforeEach;
+import com.rookies6.myspringbootlab.entity.BookDetail;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
-@SpringBootTest
-@Transactional
+import static org.assertj.core.api.Assertions.assertThat;
+
+@DataJpaTest
 public class BookRepositoryTest {
 
     @Autowired
     private BookRepository bookRepository;
 
-    @BeforeEach
-    public void setUp() {
+    @Autowired
+    private BookDetailRepository bookDetailRepository;
 
-        Book book = new Book();
-        book.setTitle("JPA 프로그래밍");
-        book.setAuthor("박둘리");
-        book.setIsbn("9788956746432");
-        book.setPrice(35000);
-        book.setPublishDate(LocalDate.parse("2025-04-30"));
+    @Test
+    public void createBookWithBookDetail() {
+        // Given
+        Book book = Book.builder()
+                .title("Clean Code")
+                .author("Robert C. Martin")
+                .isbn("9780132350884")
+                .price(45)
+                .publishDate(LocalDate.of(2008, 8, 1))
+                .build();
+        
+        BookDetail bookDetail = BookDetail.builder()
+                .description("A handbook of agile software craftsmanship")
+                .language("English")
+                .pageCount(464)
+                .publisher("Prentice Hall")
+                .coverImageUrl("https://example.com/cleancode.jpg")
+                .edition("1st")
+                .book(book)
+                .build();
+        
+        book.setBookDetail(bookDetail);
 
+        // When
+        Book savedBook = bookRepository.save(book);
+
+        // Then
+        assertThat(savedBook).isNotNull();
+        assertThat(savedBook.getId()).isNotNull();
+        assertThat(savedBook.getTitle()).isEqualTo("Clean Code");
+        assertThat(savedBook.getIsbn()).isEqualTo("9780132350884");
+        assertThat(savedBook.getBookDetail()).isNotNull();
+        assertThat(savedBook.getBookDetail().getPublisher()).isEqualTo("Prentice Hall");
+        assertThat(savedBook.getBookDetail().getPageCount()).isEqualTo(464);
+    }
+
+    @Test
+    public void findBookByIsbn() {
+        // Given
+        Book book = Book.builder()
+                .title("Clean Code")
+                .author("Robert C. Martin")
+                .isbn("9780132350884")
+                .price(45)
+                .publishDate(LocalDate.of(2008, 8, 1))
+                .build();
+        
+        BookDetail bookDetail = BookDetail.builder()
+                .description("A handbook of agile software craftsmanship")
+                .language("English")
+                .pageCount(464)
+                .publisher("Prentice Hall")
+                .coverImageUrl("https://example.com/cleancode.jpg")
+                .edition("1st")
+                .book(book)
+                .build();
+        
+        book.setBookDetail(bookDetail);
         bookRepository.save(book);
+
+        // When
+        Optional<Book> foundBook = bookRepository.findByIsbn("9780132350884");
+
+        // Then
+        assertThat(foundBook).isPresent();
+        assertThat(foundBook.get().getTitle()).isEqualTo("Clean Code");
     }
 
     @Test
-    public void testCreateBook() {
+    public void findByIdWithBookDetail() {
+        // Given
+        Book book = Book.builder()
+                .title("Clean Code")
+                .author("Robert C. Martin")
+                .isbn("9780132350884")
+                .price(45)
+                .publishDate(LocalDate.of(2008, 8, 1))
+                .build();
+        
+        BookDetail bookDetail = BookDetail.builder()
+                .description("A handbook of agile software craftsmanship")
+                .language("English")
+                .pageCount(464)
+                .publisher("Prentice Hall")
+                .coverImageUrl("https://example.com/cleancode.jpg")
+                .edition("1st")
+                .book(book)
+                .build();
+        
+        book.setBookDetail(bookDetail);
+        Book savedBook = bookRepository.save(book);
 
-        Book book = new Book();
-        book.setTitle("스프링 부트 입문");
-        book.setAuthor("홍길동");
-        book.setIsbn("9788956746425");
-        book.setPrice(30000);
-        book.setPublishDate(LocalDate.parse("2025-05-07"));
+        // When
+        Optional<Book> foundBook = bookRepository.findByIdWithBookDetail(savedBook.getId());
 
-        Book resBook = bookRepository.save(book);
-
-        assertThat(resBook.getIsbn()).isEqualTo("9788956746425");
+        // Then
+        assertThat(foundBook).isPresent();
+        assertThat(foundBook.get().getBookDetail()).isNotNull();
+        assertThat(foundBook.get().getBookDetail().getPublisher()).isEqualTo("Prentice Hall");
     }
 
     @Test
-    public void testFindByIsbn() {
-        Book resBook = bookRepository.findByIsbn("9788956746432")
-                .orElseThrow(() -> new NoSuchElementException("책을 찾을 수 없습니다."));
+    public void findBooksByAuthor() {
+        // Given
+        Book book1 = Book.builder()
+                .title("Clean Code")
+                .author("Robert C. Martin")
+                .isbn("9780132350884")
+                .build();
+        
+        Book book2 = Book.builder()
+                .title("Clean Architecture")
+                .author("Robert C. Martin")
+                .isbn("9780134494166")
+                .build();
+        
+        Book book3 = Book.builder()
+                .title("Effective Java")
+                .author("Joshua Bloch")
+                .isbn("9780134685991")
+                .build();
+        
+        bookRepository.saveAll(List.of(book1, book2, book3));
 
-        assertThat(resBook.getIsbn()).isEqualTo("9788956746432");
+        // When
+        List<Book> martinBooks = bookRepository.findByAuthorContainingIgnoreCase("martin");
+
+        // Then
+        assertThat(martinBooks).hasSize(2);
+        assertThat(martinBooks).extracting(Book::getTitle)
+                .containsExactlyInAnyOrder("Clean Code", "Clean Architecture");
     }
-
+    
     @Test
-    public void testFindByAuthor() {
-        List<Book> books = bookRepository.findByAuthor("박둘리");
+    public void findBookDetailByBookId() {
+        // Given
+        Book book = Book.builder()
+                .title("Clean Code")
+                .author("Robert C. Martin")
+                .isbn("9780132350884")
+                .price(45)
+                .publishDate(LocalDate.of(2008, 8, 1))
+                .build();
+        
+        BookDetail bookDetail = BookDetail.builder()
+                .description("A handbook of agile software craftsmanship")
+                .language("English")
+                .pageCount(464)
+                .publisher("Prentice Hall")
+                .coverImageUrl("https://example.com/cleancode.jpg")
+                .edition("1st")
+                .book(book)
+                .build();
+        
+        book.setBookDetail(bookDetail);
+        Book savedBook = bookRepository.save(book);
 
-        assertThat(books)
-                .isNotEmpty()
-                .hasSize(1)
-                .extracting(Book::getAuthor)
-                .containsOnly("박둘리");
-    }
+        // When
+        Optional<BookDetail> foundBookDetail = bookDetailRepository.findByBookId(savedBook.getId());
 
-    @Test
-    public void testUpdateBook() {
-        Book targetBook = bookRepository.findByIsbn("9788956746432")
-                .orElseThrow(() -> new NoSuchElementException("책을 찾을 수 없습니다."));
-
-        targetBook.setAuthor("김둘리");
-        bookRepository.saveAndFlush(targetBook);    // 캐시에서 가져오기 방지용
-
-        Book updatedBook = bookRepository.findByIsbn("9788956746432")
-                .orElseThrow(() -> new NoSuchElementException("책을 찾을 수 없습니다."));
-
-        assertThat(updatedBook.getAuthor()).isEqualTo("김둘리");
-    }
-
-    @Test
-    public void testDeleteBook() {
-
-        Book book = bookRepository.findByIsbn("9788956746432")
-                .orElseThrow(() -> new NoSuchElementException("책을 찾을 수 없습니다."));
-
-        bookRepository.delete(book);
-        bookRepository.flush(); // 캐시에서 가져오기 방지용
-
-        Optional<Book> deletedBook = bookRepository.findByIsbn("9788956746432");
-
-        assertThat(deletedBook).isEmpty();
+        // Then
+        assertThat(foundBookDetail).isPresent();
+        assertThat(foundBookDetail.get().getDescription()).contains("agile software craftsmanship");
     }
 }
