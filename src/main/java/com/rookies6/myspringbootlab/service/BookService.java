@@ -167,4 +167,79 @@ public class BookService {
 
         bookRepository.deleteById(id);
     }
+
+    @Transactional
+    public BookDTO.Response patchBook(Long id, BookDTO.BookPatchRequest request) {
+
+        Book book = bookRepository.findByIdWithBookDetail(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
+                        "Book", "id", id));
+
+        if (request.getIsbn() != null) {
+            if (!book.getIsbn().equals(request.getIsbn()) && bookRepository.existsByIsbn(request.getIsbn())) {
+                throw new BusinessException(ErrorCode.ISBN_DUPLICATE, request.getIsbn());
+            }
+            book.setIsbn(request.getIsbn());
+        }
+
+        if (request.getTitle() != null) {
+            book.setTitle(request.getTitle());
+        }
+        if (request.getAuthor() != null) {
+            book.setAuthor(request.getAuthor());
+        }
+        if (request.getPrice() != null) {
+            book.setPrice(request.getPrice());
+        }
+        if (request.getPublishDate() != null) {
+            book.setPublishDate(request.getPublishDate());
+        }
+
+        if (request.getDetailRequest() != null) {
+            BookDTO.BookDetailPatchRequest detailRequest = request.getDetailRequest();
+            BookDetail detail = book.getBookDetail();
+
+            if (detail == null) {
+                detail = BookDetail.builder()
+                        .book(book)
+                        .build();
+                book.setBookDetail(detail);
+            }
+
+            if (detailRequest.getDescription() != null) detail.setDescription(detailRequest.getDescription());
+            if (detailRequest.getLanguage() != null) detail.setLanguage(detailRequest.getLanguage());
+            if (detailRequest.getPageCount() != null) detail.setPageCount(detailRequest.getPageCount());
+            if (detailRequest.getPublisher() != null) detail.setPublisher(detailRequest.getPublisher());
+            if (detailRequest.getCoverImageUrl() != null) detail.setCoverImageUrl(detailRequest.getCoverImageUrl());
+            if (detailRequest.getEdition() != null) detail.setEdition(detailRequest.getEdition());
+        }
+
+        return BookDTO.Response.fromEntity(book);
+    }
+
+    @Transactional
+    public BookDTO.Response patchBookDetail(Long bookId, BookDTO.BookDetailPatchRequest request) {
+
+        Book book = bookRepository.findByIdWithBookDetail(bookId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
+                        "Book", "id", bookId));
+
+        BookDetail detail = book.getBookDetail();
+
+        if (detail == null) {
+            detail = BookDetail.builder()
+                    .book(book)
+                    .build();
+            book.setBookDetail(detail);
+        }
+
+        if (request.getDescription() != null) detail.setDescription(request.getDescription());
+        if (request.getLanguage() != null) detail.setLanguage(request.getLanguage());
+        if (request.getPageCount() != null) detail.setPageCount(request.getPageCount());
+        if (request.getPublisher() != null) detail.setPublisher(request.getPublisher());
+        if (request.getCoverImageUrl() != null) detail.setCoverImageUrl(request.getCoverImageUrl());
+        if (request.getEdition() != null) detail.setEdition(request.getEdition());
+
+        return BookDTO.Response.fromEntity(book);
+    }
 }

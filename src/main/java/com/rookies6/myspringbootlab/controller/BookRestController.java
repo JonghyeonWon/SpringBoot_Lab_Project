@@ -66,9 +66,27 @@ public class BookRestController {
         return ResponseEntity.ok(updatedBook);
     }
 
+    @PatchMapping("/{id}")
+    public ResponseEntity<BookDTO.Response> patchBook(
+            @PathVariable Long id,
+            @RequestBody BookDTO.BookPatchRequest request) {
+        BookDTO.Response patchedBook = bookService.patchBook(id, request);
+        return ResponseEntity.ok(patchedBook);
+    }
+
+    @PatchMapping("/{id}/detail")
+    public ResponseEntity<BookDTO.Response> patchBookDetail(
+            @PathVariable Long id,
+            @RequestBody BookDTO.BookDetailPatchRequest request) {
+        BookDTO.Response patchedBook = bookService.patchBookDetail(id, request);
+        return ResponseEntity.ok(patchedBook);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBook(@PathVariable Long id) {
         bookService.deleteBook(id);
         return ResponseEntity.noContent().build();
     }
+
+
 }
