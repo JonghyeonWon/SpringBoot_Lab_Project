@@ -42,9 +42,15 @@ public class BookRestController {
         return ResponseEntity.ok(targetBook);
     }
 
-    @GetMapping("/author/{author}")
-    public ResponseEntity<List<BookDTO.Response>> getBookByAuthor(@PathVariable String author) {
+    @GetMapping("/search/author")
+    public ResponseEntity<List<BookDTO.Response>> getBookByAuthor(@RequestParam String author) {
         List<BookDTO.Response> targetBooks = bookService.getBookByAuthor(author);
+        return ResponseEntity.ok(targetBooks);
+    }
+
+    @GetMapping("/search/title")
+    public ResponseEntity<List<BookDTO.Response>> getBookByTitle(@RequestParam String title) {
+            List<BookDTO.Response> targetBooks = bookService.getBookByTitle(title);
         return ResponseEntity.ok(targetBooks);
     }
 

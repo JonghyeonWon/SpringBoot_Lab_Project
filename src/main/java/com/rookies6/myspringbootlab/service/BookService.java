@@ -57,12 +57,33 @@ public class BookService {
                 .toList();
     }
 
+    public List<BookDTO.Response> getBookByTitle(String title) {
+        List<Book> books = bookRepository.findByTitleContainingIgnoreCase(title);
+
+        if(books.isEmpty()) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
+                    "Book", "title", title);
+        }
+
+        return books.stream()
+                .map(entity -> BookDTO.Response.fromEntity(entity))
+                .toList();
+    }
+
     @Transactional
     public BookDTO.Response createBook(BookDTO.Request request) {
 
         if (bookRepository.existsByIsbn(request.getIsbn())) {
             throw new BusinessException(ErrorCode.ISBN_DUPLICATE, request.getIsbn());
         }
+
+        Book book = Book.builder()
+                .title(request.getTitle())
+                .author(request.getAuthor())
+                .isbn(request.getIsbn())
+                .price(request.getPrice())
+                .publishDate(request.getPublishDate())
+                .build();
 
         BookDetail bookDetail = null;
 
@@ -75,16 +96,9 @@ public class BookService {
                     .publisher(bookDetailDTO.getPublisher())
                     .coverImageUrl(bookDetailDTO.getCoverImageUrl())
                     .edition(bookDetailDTO.getEdition())
+                    .book(book)
                     .build();
         }
-
-        Book book = Book.builder()
-                .title(request.getTitle())
-                .author(request.getAuthor())
-                .isbn(request.getIsbn())
-                .price(request.getPrice())
-                .publishDate(request.getPublishDate())
-                .build();
 
         if (bookDetail != null) {
             book.setBookDetail(bookDetail);
